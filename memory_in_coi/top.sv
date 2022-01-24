@@ -24,6 +24,7 @@ module mini_up
    logic [7:0] counter_ps, counter_ns;
    logic we_ctrl;
 
+`ifdef _ORIGINAL_
    // Instantiate mem
    mem_w #(.DW(8), .AW(8))
    prog
@@ -32,6 +33,16 @@ module mini_up
       .clk(clk),
       .we(we_ctrl),
       .out_data(mem_dat));
+`else
+   memory_abstraction #(8, 8, 256, memory_pkg::ASYNC_READ)
+   prog(clk, 
+        clk, 
+        we_ctrl, 
+        counter_ps, 
+        counter_ps, 
+        counter_ps, 
+        mem_dat);
+`endif
 
    always_ff @(posedge clk) begin
       if(!rstn) begin
@@ -73,7 +84,11 @@ module mini_up
    default disable iff(!rstn);
 
    ap_no_deadlock: assert property(ps == idle && start |=> s_eventually ps == stop);
+`ifdef ORIGINAL
    ap_write:       assert property(ps == load_mem |=> prog.mem[$past(counter_ps)] == $past(counter_ps));
+`else
+   ap_write:       assert property(ps == load_mem |=> prog.pkt_ps.data[$past(counter_ps)] == $past(counter_ps));
+`endif
 endmodule // mini_up
 
 module top(input wire clk, rstn,
@@ -86,12 +101,19 @@ module top(input wire clk, rstn,
    mini_up main (clk, rstn, start, main_data);
    mini_up follower(clk, rstn, start, follower_data);
 
-   assign co_fault = main.ps == 2'b10 && (main_data != follower_data);
+   // Fault
+   logic loaded_fault, fsm_fault;
+   assign loaded_fault = (main.ps == 2'b10 && (main_data != follower_data));
+   assign fsm_fault    = (main.ps != follower.ps);
+   assign co_fault = loaded_fault | fsm_fault;
+   
+   // Functional output
    assign fo_data  = main_data;
    
    default clocking fpv_clk @(posedge clk); endclocking
    default disable iff(!rstn);
-   ap_main: assert property(nexttime not co_fault);
+   ap_main_fault: assert property(nexttime not co_fault);
+   ap_main_fo:    assert property(main.ps == 2'b10 |-> nexttime main_data === follower_data);
    
 endmodule // top
 `default_nettype wire

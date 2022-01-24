@@ -2,6 +2,7 @@
 clear -all;
 
 # Elaborate the design
+analyze -sv12 {memory_abstraction.sv};
 analyze -sv12 {top.sv};
 ## The disable_auto_bbox will make the elab command to not cut the memory in the design
 elaborate -top {top} -disable_auto_bbox;

@@ -8,4 +8,7 @@ where abstractions are applied, so we can compare runtimes and efforts in
 both environments.
 
 ## FSV and SPV
-Can I include FSV and SPV scripts?. I think no.
+### FSV Results
+* For the file `run_jasper_fsv_no_abstractions.tcl` my machine (Ryzen 1700x with 32GB of RAM)
+  cannot get a conclusive result due complexity.
+
